@@ -53,9 +53,8 @@ def backup_database():
         send_email(" Backup thất bại", f"Lỗi: {str(e)}")
 
 # Lên lịch sao lưu vào mỗi sáng lúc 00:00
-schedule.every().day.at("20:59").do(backup_database)
+schedule.every().day.at("00:00").do(backup_database)
 
 print(" Đang chạy lịch backup...")
 while True:
     schedule.run_pending()
-    time.sleep(1)
