@@ -7,54 +7,56 @@ import schedule
 import time
 from datetime import datetime
 
-# Tải các biến môi trường từ .env
+# Tải các biến môi trường từ tệp .env
 load_dotenv()
-sender_email = os.getenv('EMAIL_SENDER')
-sender_password = os.getenv('EMAIL_PASSWORD')
-receiver_email = os.getenv('EMAIL_RECEIVER')
+email_gui = os.getenv('EMAIL_SENDER')
+mat_khau_gui = os.getenv('EMAIL_PASSWORD')
+email_nhan = os.getenv('EMAIL_RECEIVER')
 
-database_dir = './database'
-backup_dir = './backup'
+thu_muc_csdld = './database'
+thu_muc_sao_luu = './backup'
 
-# Gửi email thông báo
-def send_email(subject, message):
-    email_msg = MIMEText(message)
-    email_msg['From'] = sender_email
-    email_msg['To'] = receiver_email
-    email_msg['Subject'] = subject
+# Hàm gửi email thông báo
+def gui_email(tieu_de, noi_dung):
+    thong_diep = MIMEText(noi_dung)
+    thong_diep['From'] = email_gui
+    thong_diep['To'] = email_nhan
+    thong_diep['Subject'] = tieu_de
     try:
         with smtplib.SMTP('smtp.gmail.com', 587) as server:
             server.starttls()
-            server.login(sender_email, sender_password)
-            server.send_message(email_msg)
-        print(" Đã gửi email.")
-    except Exception as e:
-        print(f" Gửi email lỗi: {e}")
+            server.login(email_gui, mat_khau_gui)
+            server.send_message(thong_diep)
+        print("✅ Đã gửi email thành công.")
+    except Exception as loi:
+        print(f"❌ Gửi email thất bại: {loi}")
 
-# Sao lưu database
-def backup_database():
+# Hàm sao lưu cơ sở dữ liệu
+def sao_luu_csdld():
     try:
-        os.makedirs(backup_dir, exist_ok=True)
-        backed_up_files = []
+        os.makedirs(thu_muc_sao_luu, exist_ok=True)
+        danh_sach_file_sao_luu = []
 
-        for file in os.listdir(database_dir):
-            if file.endswith(('.sql', '.sqlite3')):
-                src = os.path.join(database_dir, file)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                dst = os.path.join(backup_dir, f"{os.path.splitext(file)[0]}_{timestamp}{os.path.splitext(file)[1]}")
-                shutil.copy2(src, dst)
-                backed_up_files.append(dst)
+        for tep in os.listdir(thu_muc_csdld):
+            if tep.endswith(('.sql', '.sqlite3')):
+                duong_dan_goc = os.path.join(thu_muc_csdld, tep)
+                thoi_gian = datetime.now().strftime('%Y%m%d_%H%M%S')
+                duong_dan_dich = os.path.join(thu_muc_sao_luu, f"{os.path.splitext(tep)[0]}_{thoi_gian}{os.path.splitext(tep)[1]}")
+                shutil.copy2(duong_dan_goc, duong_dan_dich)
+                danh_sach_file_sao_luu.append(duong_dan_dich)
 
-        if backed_up_files:
-            send_email(" Backup thành công", "Các file đã sao lưu:\n" + "\n".join(backed_up_files))
+        if danh_sach_file_sao_luu:
+            gui_email("✅ Sao lưu thành công", "Các tệp đã sao lưu:\n" + "\n".join(danh_sach_file_sao_luu))
         else:
-            send_email(" Không có file để sao lưu", "Không tìm thấy file .sql hoặc .sqlite3.")
-    except Exception as e:
-        send_email(" Backup thất bại", f"Lỗi: {str(e)}")
+            gui_email("⚠️ Không có tệp để sao lưu", "Không tìm thấy tệp .sql hoặc .sqlite3 trong thư mục database.")
+    except Exception as loi:
+        gui_email("❌ Sao lưu thất bại", f"Lỗi chi tiết: {str(loi)}")
 
-# Lên lịch sao lưu vào mỗi sáng lúc 00:00
-schedule.every().day.at("00:00").do(backup_database)
+# Lên lịch sao lưu hàng ngày vào 00:00
+schedule.every().day.at("00:00").do(sao_luu_csdld)
 
-print(" Đang chạy lịch backup...")
+print("🕛 Đang chạy lịch sao lưu tự động...")
+
 while True:
     schedule.run_pending()
+    time.sleep(1)  # Thêm sleep nhẹ để tránh CPU load cao
